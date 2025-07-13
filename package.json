@@ -1,0 +1,150 @@
+{
+  "name": "fastapi-endpoint-detector",
+  "displayName": "FastAPI Endpoint Detector",
+  "description": "Detect and navigate FastAPI endpoints in your workspace",
+      "version": "1.0.4",
+  "publisher": "basalam3922",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "fastapi",
+    "endpoint",
+    "api",
+    "python",
+    "detector"
+  ],
+  "main": "./out/extension.js",
+  "icon": "resources/icon.png",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "fastapi-endpoint-detector.refresh",
+        "title": "Refresh Endpoints",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "fastapi-endpoint-detector.openEndpoint",
+        "title": "Open Endpoint",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "fastapi-endpoint-detector.copyEndpointUrl",
+        "title": "Copy Endpoint URL",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "fastapi-endpoint-detector.search",
+        "title": "Search Endpoints",
+        "icon": "$(search)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "fastapi-detector",
+          "title": "FastAPI Endpoints",
+          "icon": "$(globe)"
+        }
+      ]
+    },
+    "views": {
+      "fastapi-detector": [
+        {
+          "id": "fastapi-endpoints",
+          "name": "Endpoints",
+          "when": "true"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "fastapi-endpoint-detector.refresh",
+          "when": "view == fastapi-endpoints",
+          "group": "navigation"
+        },
+        {
+          "command": "fastapi-endpoint-detector.search",
+          "when": "view == fastapi-endpoints",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "fastapi-endpoint-detector.openEndpoint",
+          "when": "view == fastapi-endpoints && viewItem == endpoint",
+          "group": "navigation"
+        },
+        {
+          "command": "fastapi-endpoint-detector.copyEndpointUrl",
+          "when": "view == fastapi-endpoints && viewItem == endpoint",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "FastAPI Endpoint Detector",
+      "properties": {
+        "fastapi-endpoint-detector.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "Base URL for FastAPI endpoints"
+        },
+        "fastapi-endpoint-detector.scanDirectories": {
+          "type": "array",
+          "default": [
+            "."
+          ],
+          "description": "Directories to scan for FastAPI endpoints"
+        },
+        "fastapi-endpoint-detector.excludePatterns": {
+          "type": "array",
+          "default": [
+            "**/__pycache__/**",
+            "**/venv/**",
+            "**/env/**",
+            "**/node_modules/**"
+          ],
+          "description": "Patterns to exclude from scanning"
+        },
+        "fastapi-endpoint-detector.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh endpoints when Python files change"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "16.x",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "eslint": "^8.28.0",
+    "typescript": "^4.9.4",
+    "vsce": "^2.15.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/basalam3922/vscode-fastapi-endpoint-detector"
+  },
+  "license": "MIT",
+  "dependencies": {}
+}
