@@ -2,8 +2,8 @@
   "name": "fastapi-endpoint-detector",
   "displayName": "FastAPI Endpoint Detector",
   "description": "Detect and navigate FastAPI endpoints in your workspace",
-      "version": "1.0.4",
-  "publisher": "basalam3922",
+  "version": "1.0.8",
+  "publisher": "mostafarm7",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -143,8 +143,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/basalam3922/vscode-fastapi-endpoint-detector"
+    "url": "https://github.com/MostafaRM7/vscode_fast_api_endpoint_detector"
+  },
+  "author": {
+    "name": "MostafaRM7",
+    "email": "mostafakooti2018@gmail.com"
   },
   "license": "MIT",
   "dependencies": {}
 }
+ 

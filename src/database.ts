@@ -98,26 +98,26 @@ export class EndpointDatabase {
         
         if (!fileRecord) {
             return false;
-        }
+                }
 
-        try {
-            const stats = await fs.promises.stat(filePath);
-            const currentHash = await this.getFileHash(filePath);
-            
-            // Check if file has changed
+                try {
+                    const stats = await fs.promises.stat(filePath);
+                    const currentHash = await this.getFileHash(filePath);
+                    
+                    // Check if file has changed
             const hasChanged = fileRecord.fileHash !== currentHash || fileRecord.lastModified !== stats.mtimeMs;
             return !hasChanged;
-        } catch (error) {
-            // File doesn't exist anymore
+                } catch (error) {
+                    // File doesn't exist anymore
             return false;
-        }
+                }
     }
 
     public async addOrUpdateFile(filePath: string): Promise<void> {
-        try {
-            const stats = await fs.promises.stat(filePath);
-            const fileHash = await this.getFileHash(filePath);
-            const now = Date.now();
+            try {
+                const stats = await fs.promises.stat(filePath);
+                const fileHash = await this.getFileHash(filePath);
+                const now = Date.now();
 
             const existingIndex = this.data.files.findIndex(f => f.filePath === filePath);
             const fileRecord: FileRecord = {
@@ -131,14 +131,14 @@ export class EndpointDatabase {
 
             if (existingIndex >= 0) {
                 this.data.files[existingIndex] = fileRecord;
-            } else {
+                    } else {
                 this.data.files.push(fileRecord);
-            }
+                    }
 
             this.saveDatabase();
-        } catch (error) {
+            } catch (error) {
             throw error;
-        }
+            }
     }
 
     public async clearEndpointsForFile(filePath: string): Promise<void> {
@@ -192,9 +192,9 @@ export class EndpointDatabase {
             const aIndex = methodOrder.indexOf(a.method);
             const bIndex = methodOrder.indexOf(b.method);
             
-            if (aIndex !== bIndex) {
-                return aIndex - bIndex;
-            }
+                if (aIndex !== bIndex) {
+                    return aIndex - bIndex;
+                }
             
             return a.path.localeCompare(b.path);
         });

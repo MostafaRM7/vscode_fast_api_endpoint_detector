@@ -1,15 +1,15 @@
 # 🚀 FastAPI Endpoint Detector
 
-[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/basalam3922.fastapi-endpoint-detector?style=flat-square&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=basalam3922.fastapi-endpoint-detector)
-[![Downloads](https://img.shields.io/visual-studio-marketplace/d/basalam3922.fastapi-endpoint-detector?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=basalam3922.fastapi-endpoint-detector)
-[![Rating](https://img.shields.io/visual-studio-marketplace/r/basalam3922.fastapi-endpoint-detector?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=basalam3922.fastapi-endpoint-detector)
+[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/mostafarm7.fastapi-endpoint-detector?style=flat-square&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=mostafarm7.fastapi-endpoint-detector)
+[![Downloads](https://img.shields.io/visual-studio-marketplace/d/mostafarm7.fastapi-endpoint-detector?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=mostafarm7.fastapi-endpoint-detector)
+[![Rating](https://img.shields.io/visual-studio-marketplace/r/mostafarm7.fastapi-endpoint-detector?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=mostafarm7.fastapi-endpoint-detector)
 
 A **powerful** and **intelligent** VS Code extension that automatically detects, indexes, and navigates FastAPI endpoints in your Python projects with **lightning-fast search capabilities**.
 
 ## ✨ Key Features
 
 ### 🔍 **Intelligent Indexing & Search**
-- **Smart Database-Backed Indexing**: Automatically indexes all FastAPI endpoints with persistent SQLite storage
+- **Smart JSON-Based Indexing**: Automatically indexes all FastAPI endpoints with persistent JSON storage
 - **Real-time Live Search**: Search endpoints as you type with instant results
 - **Incremental Updates**: Only re-indexes changed files for maximum performance
 - **Comprehensive Search**: Search by HTTP method, path, function name, or router name
@@ -37,7 +37,7 @@ A **powerful** and **intelligent** VS Code extension that automatically detects,
 ### **vs. Other FastAPI Extensions**
 | Feature | FastAPI Endpoint Detector | Others |
 |---------|---------------------------|---------|
-| **Database Indexing** | ✅ SQLite-based persistent storage | ❌ Basic file scanning |
+| **Database Indexing** | ✅ JSON-based persistent storage | ❌ Basic file scanning |
 | **Live Search** | ✅ Real-time search as you type | ❌ Limited search options |
 | **Universal Router Support** | ✅ Any router pattern | ❌ Limited to standard patterns |
 | **Performance** | ✅ Incremental updates | ❌ Full re-scan every time |
@@ -122,8 +122,8 @@ Access settings via `File → Preferences → Settings` and search for "FastAPI 
 
 ## 🔧 Advanced Features
 
-### **Database-Backed Indexing**
-- Persistent SQLite database for endpoint storage
+### **JSON-Based Indexing**
+- Persistent JSON database for endpoint storage
 - MD5 hash-based file change detection
 - Incremental updates for large codebases
 - Cross-session persistence
@@ -145,8 +145,8 @@ Access settings via `File → Preferences → Settings` and search for "FastAPI 
 ### Building from Source
 ```bash
 # Clone the repository
-git clone https://github.com/basalam3922/vscode-fastapi-endpoint-detector.git
-cd vscode-fastapi-endpoint-detector
+git clone https://github.com/MostafaRM7/vscode_fast_api_endpoint_detector.git
+cd vscode_fast_api_endpoint_detector
 
 # Install dependencies
 npm install
@@ -193,9 +193,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Support
 
 - ⭐ **Star this repository** if you find it useful
-- 🐛 **Report issues** on [GitHub Issues](https://github.com/basalam3922/vscode-fastapi-endpoint-detector/issues)
+- 🐛 **Report issues** on [GitHub Issues](https://github.com/MostafaRM7/vscode_fast_api_endpoint_detector/issues)
 - 💡 **Feature requests** are welcome
-- 📧 **Contact**: basalam3922@gmail.com
+- 📧 **Contact**: mostafakooti2018@gmail.com
 
 ---
 
