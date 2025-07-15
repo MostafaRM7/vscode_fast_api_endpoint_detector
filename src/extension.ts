@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { EndpointDatabase, EndpointRecord } from './database';
 import { FastAPIIndexer } from './indexer';
 
@@ -55,17 +56,26 @@ class FastAPIEndpointTreeItem extends vscode.TreeItem {
     }
 }
 
+type SortField = 'name' | 'method' | 'default';
+type SortOrder = 'asc' | 'desc';
+
+interface SortState {
+    field: SortField;
+    order: SortOrder;
+}
+
 class FastAPIEndpointProvider implements vscode.TreeDataProvider<FastAPIEndpointTreeItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<FastAPIEndpointTreeItem | undefined | null | void> = new vscode.EventEmitter<FastAPIEndpointTreeItem | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<FastAPIEndpointTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
-    private database: EndpointDatabase;
+    public database: EndpointDatabase;
     private indexer: FastAPIIndexer;
     private fileWatcher: vscode.FileSystemWatcher | undefined;
     private isIndexing: boolean = false;
+    private sortState: SortState = { field: 'default', order: 'asc' };
 
-    constructor(storagePath: string) {
-        this.database = new EndpointDatabase(storagePath);
+    constructor(storagePath: string, workspaceId?: string) {
+        this.database = new EndpointDatabase(storagePath, workspaceId);
         this.indexer = new FastAPIIndexer(this.database);
         this.setupFileWatcher();
         
@@ -123,8 +133,9 @@ class FastAPIEndpointProvider implements vscode.TreeDataProvider<FastAPIEndpoint
             // Return root items (endpoints)
             try {
                 const endpoints = await this.database.getAllEndpoints();
+                const sortedEndpoints = this.applySorting(endpoints);
                 
-                return endpoints.map(endpoint => 
+                return sortedEndpoints.map(endpoint => 
                     new FastAPIEndpointTreeItem(endpoint, vscode.TreeItemCollapsibleState.None)
                 );
             } catch (error) {
@@ -173,11 +184,62 @@ class FastAPIEndpointProvider implements vscode.TreeDataProvider<FastAPIEndpoint
 
     async searchEndpoints(searchTerm: string): Promise<EndpointRecord[]> {
         try {
-            return await this.database.searchEndpoints(searchTerm);
+            const endpoints = await this.database.searchEndpoints(searchTerm);
+            return this.applySorting(endpoints);
         } catch (error) {
             console.error('Error searching endpoints:', error);
             return [];
         }
+    }
+
+    private applySorting(endpoints: EndpointRecord[]): EndpointRecord[] {
+        if (this.sortState.field === 'default') {
+            return endpoints;
+        }
+
+        return [...endpoints].sort((a, b) => {
+            let comparison = 0;
+            
+            switch (this.sortState.field) {
+                case 'name':
+                    comparison = a.functionName.localeCompare(b.functionName);
+                    break;
+                case 'method':
+                    comparison = a.method.localeCompare(b.method);
+                    break;
+                default:
+                    return 0;
+            }
+            
+            return this.sortState.order === 'asc' ? comparison : -comparison;
+        });
+    }
+
+    public setSortState(field: SortField): void {
+        // Toggle order if same field, otherwise default to asc
+        if (this.sortState.field === field) {
+            this.sortState.order = this.sortState.order === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortState.field = field;
+            this.sortState.order = 'asc';
+        }
+        
+        this._onDidChangeTreeData.fire();
+    }
+
+    public setSortField(field: SortField, order: SortOrder): void {
+        this.sortState.field = field;
+        this.sortState.order = order;
+        this._onDidChangeTreeData.fire();
+    }
+
+    public resetSort(): void {
+        this.sortState = { field: 'default', order: 'asc' };
+        this._onDidChangeTreeData.fire();
+    }
+
+    public getSortState(): SortState {
+        return { ...this.sortState };
     }
 
     dispose(): void {
@@ -191,7 +253,17 @@ class FastAPIEndpointProvider implements vscode.TreeDataProvider<FastAPIEndpoint
 export function activate(context: vscode.ExtensionContext) {
     console.log('🚀 FastAPI Endpoint Detector is activating...');
 
-    const provider = new FastAPIEndpointProvider(context.globalStorageUri.fsPath);
+    // Use workspace-specific storage instead of global storage
+    const storageUri = context.storageUri || context.globalStorageUri;
+    
+    // Generate workspace ID from workspace folder
+    let workspaceId = 'default';
+    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+        const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+        workspaceId = crypto.createHash('md5').update(workspacePath).digest('hex').substring(0, 8);
+    }
+    
+    const provider = new FastAPIEndpointProvider(storageUri.fsPath, workspaceId);
     const treeView = vscode.window.createTreeView('fastapi-endpoints', {
         treeDataProvider: provider,
         showCollapseAll: true
@@ -220,6 +292,105 @@ export function activate(context: vscode.ExtensionContext) {
         
         vscode.env.clipboard.writeText(fullUrl);
         vscode.window.showInformationMessage(`Copied to clipboard: ${fullUrl}`);
+    });
+
+    const showDatabasePathCommand = vscode.commands.registerCommand('fastapi-endpoint-detector.showDatabasePath', async () => {
+        const dbPath = provider.database.getDbPath();
+        const exists = require('fs').existsSync(dbPath);
+        const message = `Database file: ${dbPath}\nExists: ${exists ? 'Yes' : 'No'}`;
+        
+        const result = await vscode.window.showInformationMessage(
+            message,
+            'Copy Path',
+            'Open Folder'
+        );
+        
+        if (result === 'Copy Path') {
+            vscode.env.clipboard.writeText(dbPath);
+            vscode.window.showInformationMessage('Database path copied to clipboard!');
+        } else if (result === 'Open Folder') {
+            const folderPath = require('path').dirname(dbPath);
+            vscode.env.openExternal(vscode.Uri.file(folderPath));
+        }
+    });
+
+    const sortEndpointsCommand = vscode.commands.registerCommand('fastapi-endpoint-detector.sortEndpoints', async () => {
+        const currentSort = provider.getSortState();
+        const currentSortText = currentSort.field === 'default' ? 'Default' : 
+                               currentSort.field === 'name' ? `Name (${currentSort.order === 'asc' ? '↑' : '↓'})` :
+                               currentSort.field === 'method' ? `Method (${currentSort.order === 'asc' ? '↑' : '↓'})` : 'Default';
+        
+        interface SortOption {
+            label: string;
+            description: string;
+            action: () => void;
+        }
+        
+        const sortOptions: SortOption[] = [
+            {
+                label: '📝 Name (Ascending)',
+                description: 'Sort by function name A-Z',
+                action: () => {
+                    provider.setSortField('name', 'asc');
+                }
+            },
+            {
+                label: '📝 Name (Descending)',
+                description: 'Sort by function name Z-A',
+                action: () => {
+                    provider.setSortField('name', 'desc');
+                }
+            },
+            {
+                label: '🔗 Method (Ascending)',
+                description: 'Sort by HTTP method A-Z',
+                action: () => {
+                    provider.setSortField('method', 'asc');
+                }
+            },
+            {
+                label: '🔗 Method (Descending)',
+                description: 'Sort by HTTP method Z-A',
+                action: () => {
+                    provider.setSortField('method', 'desc');
+                }
+            },
+            {
+                label: '🔄 Reset to Default',
+                description: 'Reset to default sorting',
+                action: () => {
+                    provider.resetSort();
+                }
+            }
+        ];
+
+        const quickPick = vscode.window.createQuickPick();
+        quickPick.title = `Sort Endpoints (Current: ${currentSortText})`;
+        quickPick.placeholder = 'Select sorting option';
+        quickPick.items = sortOptions.map(option => ({
+            label: option.label,
+            description: option.description,
+            option: option
+        }));
+
+        quickPick.onDidAccept(() => {
+            const selectedItem = quickPick.selectedItems[0] as any;
+            if (selectedItem && selectedItem.option) {
+                selectedItem.option.action();
+                const newSort = provider.getSortState();
+                const newSortText = newSort.field === 'default' ? 'Default' : 
+                                   newSort.field === 'name' ? `Name (${newSort.order === 'asc' ? 'A-Z' : 'Z-A'})` :
+                                   newSort.field === 'method' ? `Method (${newSort.order === 'asc' ? 'A-Z' : 'Z-A'})` : 'Default';
+                vscode.window.showInformationMessage(`Sorted by: ${newSortText}`);
+            }
+            quickPick.hide();
+        });
+
+        quickPick.onDidHide(() => {
+            quickPick.dispose();
+        });
+
+        quickPick.show();
     });
 
     const searchCommand = vscode.commands.registerCommand('fastapi-endpoint-detector.search', async () => {
@@ -309,6 +480,8 @@ export function activate(context: vscode.ExtensionContext) {
         refreshCommand,
         openEndpointCommand,
         copyEndpointUrlCommand,
+        showDatabasePathCommand,
+        sortEndpointsCommand,
         searchCommand,
         provider
     );

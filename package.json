@@ -2,7 +2,7 @@
   "name": "fastapi-endpoint-detector",
   "displayName": "FastAPI Endpoint Detector",
   "description": "Detect and navigate FastAPI endpoints in your workspace",
-  "version": "1.0.8",
+  "version": "1.0.13",
   "publisher": "mostafarm7",
   "engines": {
     "vscode": "^1.74.0"
@@ -44,6 +44,16 @@
         "command": "fastapi-endpoint-detector.search",
         "title": "Search Endpoints",
         "icon": "$(search)"
+      },
+      {
+        "command": "fastapi-endpoint-detector.showDatabasePath",
+        "title": "Show Database Path",
+        "icon": "$(database)"
+      },
+      {
+        "command": "fastapi-endpoint-detector.sortEndpoints",
+        "title": "Sort Endpoints",
+        "icon": "$(sort-precedence)"
       }
     ],
     "viewsContainers": {
@@ -73,6 +83,16 @@
         },
         {
           "command": "fastapi-endpoint-detector.search",
+          "when": "view == fastapi-endpoints",
+          "group": "navigation"
+        },
+        {
+          "command": "fastapi-endpoint-detector.showDatabasePath",
+          "when": "view == fastapi-endpoints",
+          "group": "navigation"
+        },
+        {
+          "command": "fastapi-endpoint-detector.sortEndpoints",
           "when": "view == fastapi-endpoints",
           "group": "navigation"
         }

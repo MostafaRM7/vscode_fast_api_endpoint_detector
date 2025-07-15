@@ -11,6 +11,7 @@ export interface EndpointRecord {
     lineNumber: number;
     routerName: string;
     fileHash: string;
+    workspaceId?: string;
     createdAt: number;
 }
 
@@ -20,6 +21,7 @@ export interface FileRecord {
     fileHash: string;
     lastModified: number;
     isIndexed: boolean;
+    workspaceId?: string;
     createdAt: number;
 }
 
@@ -32,9 +34,11 @@ interface DatabaseData {
 export class EndpointDatabase {
     private data: DatabaseData;
     private dbPath: string;
+    private workspaceId: string;
 
-    constructor(storagePath: string) {
-        this.dbPath = path.join(storagePath, 'fastapi_endpoints.json');
+    constructor(storagePath: string, workspaceId?: string) {
+        this.workspaceId = workspaceId || 'default';
+        this.dbPath = path.join(storagePath, `fastapi_endpoints_${this.workspaceId}.json`);
         this.data = {
             endpoints: [],
             files: [],
@@ -94,23 +98,25 @@ export class EndpointDatabase {
     }
 
     public async isFileIndexed(filePath: string): Promise<boolean> {
-        const fileRecord = this.data.files.find(f => f.filePath === filePath);
+        const fileRecord = this.data.files.find(f => 
+            f.filePath === filePath && (f.workspaceId === this.workspaceId || !f.workspaceId)
+        );
         
         if (!fileRecord) {
             return false;
-                }
+        }
 
-                try {
-                    const stats = await fs.promises.stat(filePath);
-                    const currentHash = await this.getFileHash(filePath);
-                    
-                    // Check if file has changed
+        try {
+            const stats = await fs.promises.stat(filePath);
+            const currentHash = await this.getFileHash(filePath);
+            
+            // Check if file has changed
             const hasChanged = fileRecord.fileHash !== currentHash || fileRecord.lastModified !== stats.mtimeMs;
             return !hasChanged;
-                } catch (error) {
-                    // File doesn't exist anymore
+        } catch (error) {
+            // File doesn't exist anymore
             return false;
-                }
+        }
     }
 
     public async addOrUpdateFile(filePath: string): Promise<void> {
@@ -126,6 +132,7 @@ export class EndpointDatabase {
                 fileHash,
                 lastModified: stats.mtimeMs,
                 isIndexed: true,
+                workspaceId: this.workspaceId,
                 createdAt: existingIndex >= 0 ? this.data.files[existingIndex].createdAt : now
             };
 
@@ -142,7 +149,9 @@ export class EndpointDatabase {
     }
 
     public async clearEndpointsForFile(filePath: string): Promise<void> {
-        this.data.endpoints = this.data.endpoints.filter(e => e.filePath !== filePath);
+        this.data.endpoints = this.data.endpoints.filter(e => 
+            e.filePath !== filePath || (e.workspaceId !== this.workspaceId && e.workspaceId)
+        );
         this.saveDatabase();
     }
 
@@ -150,6 +159,7 @@ export class EndpointDatabase {
         const newEndpoint: EndpointRecord = {
             ...endpoint,
             id: this.data.nextId++,
+            workspaceId: this.workspaceId,
             createdAt: Date.now()
         };
 
@@ -158,28 +168,37 @@ export class EndpointDatabase {
     }
 
     public async getAllEndpoints(): Promise<EndpointRecord[]> {
-        return [...this.data.endpoints].sort((a, b) => {
+        const currentWorkspaceEndpoints = this.data.endpoints.filter(e => 
+            e.workspaceId === this.workspaceId || !e.workspaceId
+        );
+        
+        const sortedByFile = [...currentWorkspaceEndpoints].sort((a, b) => {
             if (a.filePath !== b.filePath) {
                 return a.filePath.localeCompare(b.filePath);
             }
             return a.lineNumber - b.lineNumber;
         });
+        
+        return this.sortEndpointsByMethod(sortedByFile);
     }
 
     public async getEndpointsByFile(filePath: string): Promise<EndpointRecord[]> {
-        return this.data.endpoints
-            .filter(e => e.filePath === filePath)
+        const filteredByFile = this.data.endpoints
+            .filter(e => e.filePath === filePath && (e.workspaceId === this.workspaceId || !e.workspaceId))
             .sort((a, b) => a.lineNumber - b.lineNumber);
+            
+        return this.sortEndpointsByMethod(filteredByFile);
     }
 
     public async searchEndpoints(searchTerm: string): Promise<EndpointRecord[]> {
         const searchPattern = searchTerm.toLowerCase();
         
         const results = this.data.endpoints.filter(endpoint => 
-            endpoint.method.toLowerCase().includes(searchPattern) ||
+            (endpoint.workspaceId === this.workspaceId || !endpoint.workspaceId) &&
+            (endpoint.method.toLowerCase().includes(searchPattern) ||
             endpoint.path.toLowerCase().includes(searchPattern) ||
             endpoint.functionName.toLowerCase().includes(searchPattern) ||
-            endpoint.filePath.toLowerCase().includes(searchPattern)
+            endpoint.filePath.toLowerCase().includes(searchPattern))
         );
         
         return this.sortEndpointsByMethod(results);
@@ -192,18 +211,43 @@ export class EndpointDatabase {
             const aIndex = methodOrder.indexOf(a.method);
             const bIndex = methodOrder.indexOf(b.method);
             
+            // اگر هر دو method در لیست باشند، بر اساس اولویت سورت کن
+            if (aIndex !== -1 && bIndex !== -1) {
                 if (aIndex !== bIndex) {
                     return aIndex - bIndex;
                 }
+            }
+            // اگر فقط یکی در لیست باشد، آن را اولویت بده
+            else if (aIndex !== -1) {
+                return -1;
+            }
+            else if (bIndex !== -1) {
+                return 1;
+            }
+            // اگر هیچکدام در لیست نباشند، بر اساس اسم سورت کن
+            else {
+                const methodCompare = a.method.localeCompare(b.method);
+                if (methodCompare !== 0) {
+                    return methodCompare;
+                }
+            }
             
+            // در صورت یکسان بودن method، بر اساس path سورت کن
             return a.path.localeCompare(b.path);
         });
     }
 
     public async getStats(): Promise<{ totalEndpoints: number; totalFiles: number; indexedFiles: number }> {
-        const totalEndpoints = this.data.endpoints.length;
-        const totalFiles = this.data.files.length;
-        const indexedFiles = this.data.files.filter(f => f.isIndexed).length;
+        const workspaceEndpoints = this.data.endpoints.filter(e => 
+            e.workspaceId === this.workspaceId || !e.workspaceId
+        );
+        const workspaceFiles = this.data.files.filter(f => 
+            f.workspaceId === this.workspaceId || !f.workspaceId
+        );
+        
+        const totalEndpoints = workspaceEndpoints.length;
+        const totalFiles = workspaceFiles.length;
+        const indexedFiles = workspaceFiles.filter(f => f.isIndexed).length;
 
         return {
             totalEndpoints,
@@ -214,5 +258,9 @@ export class EndpointDatabase {
 
     public async close(): Promise<void> {
         this.saveDatabase();
+    }
+
+    public getDbPath(): string {
+        return this.dbPath;
     }
 } 
