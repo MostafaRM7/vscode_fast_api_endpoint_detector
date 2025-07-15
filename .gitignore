@@ -12,3 +12,5 @@ yarn-error.log*
 coverage/
 dist/
 build/ 
+# Self-hosted runner directory
+actions-runner/
